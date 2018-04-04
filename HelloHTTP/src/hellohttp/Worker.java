@@ -36,7 +36,7 @@ public class Worker extends Thread {
     private HttpMethod method;
     private String path;
     private HashMap requestHeaderMap;
-    private String cookieResponse;
+    private String serverResponse;
 
     public Worker(Socket socket) throws IOException {
         this.socket = socket;
@@ -44,43 +44,33 @@ public class Worker extends Thread {
         this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
         this.path = null;
         this.method = null;
-        this.cookieResponse = null;
+        this.serverResponse = new String();
         this.requestHeaderMap = new HashMap();
         this.start();
     }
 
     public void response404() throws IOException {
-        String html = " <!DOCTYPE html>\n"
-                + "<html>\n"
-                + "<title>Not Found</title>\n"
-                + "<body>\n"
-                + "    <div style=\"width: 100%\">\n"
-                + "        <h1>Not Found</h1>\n"
-                + "    </div>\n"
-                + "</body>\n"
-                + "</html> ";
-        //File notFoundHtml = new File("src/htmls/notfound.html");
+        File file = new File("src/htmls/notfound.html");
+        Path filePath = Paths.get(file.getPath());
         this.out.write("HTTP/1.1 404 NOT FOUND\r\n");
-        this.out.write("content-type: text/html\r\n");
-        //this.out.write("content-lenght: " + notFoundHtml.length() + "\r\n");
-        this.out.write("content-lenght: " + html.length() + "\r\n");
+        this.out.write("content-type: " + Files.probeContentType(filePath) + "\r\n");
+        this.out.write("content-lenght: " + file.length() + "\r\n");
         this.out.write("\r\n");
-        this.out.write(html);
-        /*byte[] buffer = new byte[1024];
-        int bytesRead;
-        FileInputStream fileIn = new FileInputStream(notFoundHtml);
-        OutputStream dataOut = new DataOutputStream(this.socket.getOutputStream());
-
-        while ((bytesRead = fileIn.read(buffer)) != -1) {
-            dataOut.write(buffer, 0, bytesRead);
-            dataOut.flush();
-        }
-        fileIn.close();
-        dataOut.close();*/
+        this.out.flush();
+        this.writeFile(file);
     }
 
     public String response200() {
         return ("HTTP/1.1 200 OK\r\n");
+    }
+
+    public void response301() throws IOException {
+        //enviar o location com o path+/ quando é um diretório
+        this.out.write("HTTP/1.1 301 Moved Permanently\r\n");
+        this.addToResponse("Location: " + this.getPath() + "/\r\n");
+        this.out.write(this.getServerResponse());
+        this.out.write("\r\n");
+        this.out.flush();
     }
 
     public HttpMethod checkMethod(String message) {
@@ -103,12 +93,12 @@ public class Worker extends Thread {
         this.path = path;
     }
 
-    public String getCookieResponse() {
-        return cookieResponse;
+    public String getServerResponse() {
+        return serverResponse;
     }
 
-    public void setCookieResponse(String cookieResponse) {
-        this.cookieResponse = cookieResponse;
+    public void setServerResponse(String serverResponse) {
+        this.serverResponse = serverResponse;
     }
 
     public HashMap getRequestHeaderMap() {
@@ -144,20 +134,45 @@ public class Worker extends Thread {
         }
     }
 
+    public void writeFile(File file) throws IOException {
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        FileInputStream fileIn = new FileInputStream(file);
+        OutputStream dataOut = new DataOutputStream(this.socket.getOutputStream());
+
+        while ((bytesRead = fileIn.read(buffer)) != -1) {
+            dataOut.write(buffer, 0, bytesRead);
+            dataOut.flush();
+        }
+        fileIn.close();
+        //dataOut.close();
+    }
+
+    public void addToResponse(String line) {
+        if (this.getServerResponse().isEmpty()) {
+            this.setServerResponse(line);
+        } else {
+            this.serverResponse = this.serverResponse.concat(line);
+        }
+    }
+
     public String folderHtml(File[] filesList) {
+        /*
+        List<String> fileAndDirList = new ArrayList<>();
+
+        for (File f : filesList) {
+            fileAndDirList.add("<tr><td><a href=\"" + f.getName() + "\">" + f.getName()
+                    + "</a></td><td>" + f.length() + "</td></tr>\n");
+        }
+         */
         String htmlInjection = new String();
 
         for (File f : filesList) {
-            htmlInjection = htmlInjection.concat("<tr><td>" + f.getName()
-                    + "</td><td>" + f.length() + "</td></tr>\n");
+            htmlInjection = htmlInjection.concat("<tr><td><a href=\"" + f.getName() + "\">" + f.getName()
+                    + "</a></td><td>" + f.length() + "</td></tr>\n");
         }
 
         String html = "<!DOCTYPE html>\n"
-                + "<!--\n"
-                + "To change this license header, choose License Headers in Project Properties.\n"
-                + "To change this template file, choose Tools | Templates\n"
-                + "and open the template in the editor.\n"
-                + "-->\n"
                 + "<html>\n"
                 + "    <head>\n"
                 + "        <!--<title>TODO supply a title</title>-->\n"
@@ -183,35 +198,30 @@ public class Worker extends Thread {
     }
 
     public void methodGET() throws IOException {
+        //faz autenticacao para acessar se for dir login:admin/pass:admin
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
             File folder = new File(path);
             File[] files = folder.listFiles();
-            this.out.write(this.response200());
-            //this.out.write(this.getCookieResponse());
-            this.out.write("\r\n");
-            this.out.write(this.folderHtml(files));
+            /*this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
+            this.addToResponse("content-lenght: " + folder.length() + "\r\n");
+            if (this.getPath().charAt(this.getPath().length() - 1) != '/') {
+                this.response301();
+            } else {*/
+                this.out.write(this.response200());
+                this.out.write(this.getServerResponse());
+                this.out.write("\r\n");
+                this.out.write(this.folderHtml(files));
+            //}
         } else if (Files.exists(document)) {
-
             File pathFile = new File(this.getPath());
-
             this.out.write(this.response200());
-            this.out.write("content-type: " + Files.probeContentType(document)+"\r\n");
-            this.out.write("content-lenght: " + pathFile.length()+"\r\n");
+            this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
+            this.addToResponse("content-lenght: " + pathFile.length() + "\r\n");
+            this.out.write(this.getServerResponse());
             this.out.write("\r\n");
             this.out.flush();
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            FileInputStream fileIn = new FileInputStream(pathFile);
-            OutputStream dataOut = new DataOutputStream(this.socket.getOutputStream());
-
-            while ((bytesRead = fileIn.read(buffer)) != -1) {
-                dataOut.write(buffer, 0, bytesRead);
-                dataOut.flush();
-            }
-            fileIn.close();
-            //dataOut.close();
-
+            this.writeFile(pathFile);
         } else {
             this.response404();
         }
@@ -253,14 +263,13 @@ public class Worker extends Thread {
     public void run() {
         try {
             this.processHeader();
+
             if (this.containsCookie()) {
-                System.out.println("CHEGOU COOKIE!");
-                System.out.println(this.getRequestHeaderMap().get("Cookie"));
-                //this.setCookieResponse(this.alterCookie());
+                this.addToResponse(this.alterCookie());
             } else {
-                System.out.println("NOVO COOKIE");
-                //this.setCookieResponse(this.setNewCookie());
+                this.addToResponse(this.setNewCookie());
             }
+
             this.processMethod();
 
             System.out.println("Encerrando conexoes...");
@@ -275,20 +284,21 @@ public class Worker extends Thread {
     private String alterCookie() {
         //formato do cookie: count_i
         String currentCookie = (String) this.getRequestHeaderMap().get("Cookie");
-        System.out.println("Cookie que veio");
-        System.out.println(currentCookie);
-        String[] splitter = currentCookie.split("_");
-        int i = Integer.parseInt(splitter[1]);
-        return ("set-cookie: count_" + (i + 1) + "\r\n");
+        String[] splitter;
+        int cookieValue;
+        if (currentCookie.contains("; ")) {
+            splitter = currentCookie.split("; ");
+            String[] lastCookie = splitter[0].split("=");
+            cookieValue = Integer.parseInt(lastCookie[1]);
+        } else {
+            splitter = currentCookie.split("=");
+            cookieValue = Integer.parseInt(splitter[1]);
+        }
+        return ("set-cookie: count=" + (cookieValue + 1) + "\r\n");
     }
 
     private String setNewCookie() {
-        return ("set-cookie: count_0\r\n");
-    }
-
-    private String prepareResponse(String cookieResponse) {
-        String finalResponse = "content-encoding: br\r\n" + cookieResponse;
-        return finalResponse;
+        return ("set-cookie: count=0\r\n");
     }
 
 }
