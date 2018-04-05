@@ -10,10 +10,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -64,6 +66,13 @@ public class Worker extends Thread {
         return ("HTTP/1.1 200 OK\r\n");
     }
 
+    public void response401() throws IOException{
+        this.out.write("HTTP/1.1 401 Unauthorized\r\n");
+        this.out.write("WWW-Authenticate: Basic realm=\"User Visible Realm\"");
+        this.out.write("\r\n");
+        this.out.flush();
+    }
+    
     public void response301() throws IOException {
         //enviar o location com o path+/ quando é um diretório
         this.out.write("HTTP/1.1 301 Moved Permanently\r\n");
@@ -197,22 +206,52 @@ public class Worker extends Thread {
         return html;
     }
 
+    public boolean isAuthorized() throws UnsupportedEncodingException {
+        if (this.requestHeaderMap.containsKey("Authorization")) {
+            if (this.loginVerify()){
+                return true;
+            }
+            else{
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public boolean loginVerify() throws UnsupportedEncodingException{
+        String auto = (String) this.requestHeaderMap.get("Authorization");
+        String[] splitter = auto.split("Basic ");
+        byte[] decodify = Base64.getDecoder().decode(splitter[1]);
+        String login = new String(decodify,"UTF-8");
+        String[] loginSplit = login.split(":");
+        if (loginSplit[0].equals("admin") && loginSplit[1].equals("admin")){
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
     public void methodGET() throws IOException {
         //faz autenticacao para acessar se for dir login:admin/pass:admin
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
-            File folder = new File(path);
-            File[] files = folder.listFiles();
-            /*this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
-            this.addToResponse("content-lenght: " + folder.length() + "\r\n");
-            if (this.getPath().charAt(this.getPath().length() - 1) != '/') {
-                this.response301();
-            } else {*/
-                this.out.write(this.response200());
-                this.out.write(this.getServerResponse());
-                this.out.write("\r\n");
-                this.out.write(this.folderHtml(files));
-            //}
+            if (this.isAuthorized()) {
+                if ((this.getPath().charAt(this.getPath().length() - 1)) != '/') {
+                    this.response301();
+                } else {
+                    File folder = new File(path);
+                    File[] files = folder.listFiles();
+                    this.out.write(this.response200());
+                    this.out.write(this.getServerResponse());
+                    this.out.write("\r\n");
+                    this.out.write(this.folderHtml(files));
+                }
+            }
+            else {
+                this.response401();
+            }
         } else if (Files.exists(document)) {
             File pathFile = new File(this.getPath());
             this.out.write(this.response200());
