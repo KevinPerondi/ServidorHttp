@@ -5,7 +5,6 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -16,12 +15,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.activation.MimeType;
 
 /*
 
@@ -66,15 +62,15 @@ public class Worker extends Thread {
         return ("HTTP/1.1 200 OK\r\n");
     }
 
-    public void response401() throws IOException{
-        this.out.write("HTTP/1.1 401 Unauthorized\r\n");
+    public void response401() throws IOException {
+        //this.out.write("HTTP/1.1 401 Unauthorized\r\n");
+        this.out.write("HTTP/1.1 401 Authorization Required\r\n");
         this.out.write("WWW-Authenticate: Basic realm=\"User Visible Realm\"");
         this.out.write("\r\n");
         this.out.flush();
     }
-    
+
     public void response301() throws IOException {
-        //enviar o location com o path+/ quando é um diretório
         this.out.write("HTTP/1.1 301 Moved Permanently\r\n");
         this.addToResponse("Location: " + this.getPath() + "/\r\n");
         this.out.write(this.getServerResponse());
@@ -154,7 +150,6 @@ public class Worker extends Thread {
             dataOut.flush();
         }
         fileIn.close();
-        //dataOut.close();
     }
 
     public void addToResponse(String line) {
@@ -208,36 +203,31 @@ public class Worker extends Thread {
 
     public boolean isAuthorized() throws UnsupportedEncodingException {
         if (this.requestHeaderMap.containsKey("Authorization")) {
-            if (this.loginVerify()){
-                return true;
-            }
-            else{
-                return false;
-            }
+            return true;
         } else {
             return false;
         }
     }
 
-    public boolean loginVerify() throws UnsupportedEncodingException{
+    public boolean loginVerify() throws UnsupportedEncodingException {
         String auto = (String) this.requestHeaderMap.get("Authorization");
         String[] splitter = auto.split("Basic ");
         byte[] decodify = Base64.getDecoder().decode(splitter[1]);
-        String login = new String(decodify,"UTF-8");
+        String login = new String(decodify, "UTF-8");
         String[] loginSplit = login.split(":");
-        if (loginSplit[0].equals("admin") && loginSplit[1].equals("admin")){
+        if (loginSplit[0].equals("admin") && loginSplit[1].equals("admin")) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
-    
+
     public void methodGET() throws IOException {
         //faz autenticacao para acessar se for dir login:admin/pass:admin
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
             if (this.isAuthorized()) {
+                //verificar se o login é admin/admin na loginVerify
                 if ((this.getPath().charAt(this.getPath().length() - 1)) != '/') {
                     this.response301();
                 } else {
@@ -248,8 +238,7 @@ public class Worker extends Thread {
                     this.out.write("\r\n");
                     this.out.write(this.folderHtml(files));
                 }
-            }
-            else {
+            } else {
                 this.response401();
             }
         } else if (Files.exists(document)) {
@@ -269,7 +258,6 @@ public class Worker extends Thread {
     public void processMethod() throws IOException {
         switch (this.method) {
             case GET:
-                //System.out.println("GET");
                 this.methodGET();
             case CONNECT:
                 System.out.println("CONNECT");
@@ -321,7 +309,6 @@ public class Worker extends Thread {
     }
 
     private String alterCookie() {
-        //formato do cookie: count_i
         String currentCookie = (String) this.getRequestHeaderMap().get("Cookie");
         String[] splitter;
         int cookieValue;
