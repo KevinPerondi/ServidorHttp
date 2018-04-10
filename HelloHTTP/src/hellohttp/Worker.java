@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -15,7 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -161,14 +165,6 @@ public class Worker extends Thread {
     }
 
     public String folderHtml(File[] filesList) {
-        /*
-        List<String> fileAndDirList = new ArrayList<>();
-
-        for (File f : filesList) {
-            fileAndDirList.add("<tr><td><a href=\"" + f.getName() + "\">" + f.getName()
-                    + "</a></td><td>" + f.length() + "</td></tr>\n");
-        }
-         */
         String htmlInjection = new String();
 
         for (File f : filesList) {
@@ -203,7 +199,11 @@ public class Worker extends Thread {
 
     public boolean isAuthorized() throws UnsupportedEncodingException {
         if (this.requestHeaderMap.containsKey("Authorization")) {
-            return true;
+            if (this.loginVerify()) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }
@@ -223,11 +223,9 @@ public class Worker extends Thread {
     }
 
     public void methodGET() throws IOException {
-        //faz autenticacao para acessar se for dir login:admin/pass:admin
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
             if (this.isAuthorized()) {
-                //verificar se o login é admin/admin na loginVerify
                 if ((this.getPath().charAt(this.getPath().length() - 1)) != '/') {
                     this.response301();
                 } else {
@@ -290,7 +288,7 @@ public class Worker extends Thread {
     public void run() {
         try {
             this.processHeader();
-
+            this.prepareResponse();
             if (this.containsCookie()) {
                 this.addToResponse(this.alterCookie());
             } else {
@@ -325,6 +323,11 @@ public class Worker extends Thread {
 
     private String setNewCookie() {
         return ("set-cookie: count=0\r\n");
+    }
+
+    private void prepareResponse() {
+        Date data = new Date();
+        this.addToResponse("Date: " + data.toString() + "\r\n");
     }
 
 }
