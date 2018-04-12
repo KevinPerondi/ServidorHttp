@@ -1,4 +1,4 @@
-package hellohttp;
+package Server;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -222,6 +222,30 @@ public class Worker extends Thread {
         }
     }
 
+    private String alterCookie() {
+        String currentCookie = (String) this.getRequestHeaderMap().get("Cookie");
+        String[] splitter;
+        int cookieValue;
+        if (currentCookie.contains("; ")) {
+            splitter = currentCookie.split("; ");
+            String[] lastCookie = splitter[0].split("=");
+            cookieValue = Integer.parseInt(lastCookie[1]);
+        } else {
+            splitter = currentCookie.split("=");
+            cookieValue = Integer.parseInt(splitter[1]);
+        }
+        return ("set-cookie: count=" + (cookieValue + 1) + "\r\n");
+    }
+
+    private String setNewCookie() {
+        return ("set-cookie: count=0\r\n");
+    }
+
+    private void prepareResponse() {
+        Date data = new Date();
+        this.addToResponse("Date: " + data.toString() + "\r\n");
+    }
+    
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -288,6 +312,11 @@ public class Worker extends Thread {
     public void run() {
         try {
             this.processHeader();
+            
+            if (this.getPath().endsWith(".dyn")){
+                //implementar aqui...
+            }
+            
             this.prepareResponse();
             if (this.containsCookie()) {
                 this.addToResponse(this.alterCookie());
@@ -304,30 +333,6 @@ public class Worker extends Thread {
         } catch (IOException ex) {
             Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-    private String alterCookie() {
-        String currentCookie = (String) this.getRequestHeaderMap().get("Cookie");
-        String[] splitter;
-        int cookieValue;
-        if (currentCookie.contains("; ")) {
-            splitter = currentCookie.split("; ");
-            String[] lastCookie = splitter[0].split("=");
-            cookieValue = Integer.parseInt(lastCookie[1]);
-        } else {
-            splitter = currentCookie.split("=");
-            cookieValue = Integer.parseInt(splitter[1]);
-        }
-        return ("set-cookie: count=" + (cookieValue + 1) + "\r\n");
-    }
-
-    private String setNewCookie() {
-        return ("set-cookie: count=0\r\n");
-    }
-
-    private void prepareResponse() {
-        Date data = new Date();
-        this.addToResponse("Date: " + data.toString() + "\r\n");
     }
 
 }
