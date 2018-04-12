@@ -46,35 +46,37 @@ public class WorkerDyn {
     public void setFunctionResponse(String functionResponse) {
         this.functionResponse = functionResponse;
     }
-    
-    public void getNameAndParam(String filePath) throws FileNotFoundException{
+
+    public void getNameAndParam(String filePath) throws FileNotFoundException {
         File file = new File(filePath);
         Scanner scan = new Scanner(file);
         String fileInSTR = new String();
-        while(scan.hasNextLine()){
+        while (scan.hasNextLine()) {
             fileInSTR = fileInSTR.concat(scan.nextLine());
         }
-        
+
         String[] splitter = fileInSTR.split("<%");
         splitter = splitter[1].split("%>");
         String function = splitter[0];
         function = function.replace("\"", "");
         function = function.trim();
         this.setFunctionName(function.substring(0, function.indexOf("(")));
-        this.setFunctionParam(function.substring(function.indexOf("(")+1, function.indexOf(")")));        
+        this.setFunctionParam(function.substring(function.indexOf("(") + 1, function.indexOf(")")));
     }
-    
-    public void execFunction(){
+
+    public void execFunction() {
         Date date = new Date();
         SimpleDateFormat sdf;
-        try{
+        try {
             sdf = new SimpleDateFormat(this.getFunctionParam());
-            System.out.println(sdf.format(date));
-        }catch(Exception e){
+            this.setFunctionResponse(sdf.format(date).toString());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
             this.setFunctionResponse("Formato Invalido");
         }
-        System.out.println(this.getFunctionName());
-        System.out.println(this.getFunctionParam());
+//        System.out.println(this.getFunctionName());
+//        System.out.println(this.getFunctionParam());
+//        System.out.println(this.getFunctionResponse());
     }
-    
+
 }
