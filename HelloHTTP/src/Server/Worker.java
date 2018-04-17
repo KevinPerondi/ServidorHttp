@@ -245,7 +245,7 @@ public class Worker extends Thread {
         Date data = new Date();
         this.addToResponse("Date: " + data.toString() + "\r\n");
     }
-    
+
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -264,14 +264,26 @@ public class Worker extends Thread {
                 this.response401();
             }
         } else if (Files.exists(document)) {
-            File pathFile = new File(this.getPath());
-            this.out.write(this.response200());
-            this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
-            this.addToResponse("content-lenght: " + pathFile.length() + "\r\n");
-            this.out.write(this.getServerResponse());
-            this.out.write("\r\n");
-            this.out.flush();
-            this.writeFile(pathFile);
+            if (this.getPath().endsWith(".dyn")) {
+                WorkerDyn wd = new WorkerDyn(this.getPath());
+                wd.procedure();
+                this.out.write(this.response200());
+                this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
+                this.addToResponse("content-lenght: " + wd.getFileLenght() + "\r\n");
+                this.out.write(this.getServerResponse());
+                this.out.write("\r\n");
+                this.out.flush();
+                this.out.write(wd.getFileInString());
+            } else {
+                File pathFile = new File(this.getPath());
+                this.out.write(this.response200());
+                this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
+                this.addToResponse("content-lenght: " + pathFile.length() + "\r\n");
+                this.out.write(this.getServerResponse());
+                this.out.write("\r\n");
+                this.out.flush();
+                this.writeFile(pathFile);
+            }
         } else {
             this.response404();
         }
@@ -312,11 +324,6 @@ public class Worker extends Thread {
     public void run() {
         try {
             this.processHeader();
-            
-            if (this.getPath().endsWith(".dyn")){
-                //implementar aqui...
-            }
-            
             this.prepareResponse();
             if (this.containsCookie()) {
                 this.addToResponse(this.alterCookie());
