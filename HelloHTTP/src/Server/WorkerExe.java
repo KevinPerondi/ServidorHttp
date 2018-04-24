@@ -1,23 +1,36 @@
 package Server;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Scanner;
-import java.util.regex.Pattern;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class WorkerExe {
 
     private final String filePath;
     private String response;
+    private String serverResponse;
     private String html;
+    private final BufferedWriter exeOut;
 
-    public WorkerExe(String filePath) {
+    public WorkerExe(String filePath, BufferedWriter out, String servResponse) {
         this.filePath = filePath;
+        this.exeOut = out;
         this.response = new String();
         this.html = new String();
+        this.serverResponse = servResponse;
+    }
+
+    public String getServerResponse() {
+        return serverResponse;
+    }
+
+    public void setServerResponse(String serverResponse) {
+        this.serverResponse = serverResponse;
     }
 
     public String getHtml() {
@@ -40,35 +53,69 @@ public class WorkerExe {
         this.response = response;
     }
 
-    public void concatResponse(String str){
-        if (this.getResponse().isEmpty()){
+    public void concatResponse(String str) {
+        if (this.getResponse().isEmpty()) {
             this.setResponse(str);
-        }
-        this.setResponse(this.getResponse().concat(str));
-    }
-    
-    public void exeHtml() throws FileNotFoundException{
-        Scanner scan = new Scanner(new File("src/htmls/exehtml.html"));
-        String fileInSTR = new String();
-        while (scan.hasNextLine()) {
-            fileInSTR = fileInSTR.concat(scan.nextLine());
-        }
-        String regex = Pattern.quote("<%")+"(.*?)"+Pattern.quote("%>");
-        fileInSTR = fileInSTR.replaceAll(regex, this.getResponse());
-        this.setHtml(fileInSTR);
-    }
-    
-    public void exec() throws IOException {
-        Process p = Runtime.getRuntime().exec(filePath);
-        BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        String line;
-        while ((line = input.readLine()) != null) {
-            this.concatResponse(line);
+        } else {
+            this.setResponse(this.getResponse().concat(str));
         }
     }
-    
-    public void procedure() throws IOException{
-        this.exec();
-        this.exeHtml();
+
+    public String response200() {
+        return ("HTTP/1.1 200 OK\r\n");
     }
+
+    public void response404() throws IOException {
+        this.exeOut.write("HTTP/1.1 404 NOT FOUND\r\n");
+        this.exeOut.write("\r\n");
+        this.exeOut.flush();
+        this.exeOut.write("CGI ERROR!");
+    }
+
+    public void exec(String params) throws IOException {
+        Process p = null;
+        boolean processSucefull = true;
+
+        if (!params.isEmpty()) {
+            if (params.contains("&")) {
+                String[] parameters = params.split("&");
+                if (parameters.length == 2) {
+                    p = new ProcessBuilder(this.getFilePath(), parameters[0], parameters[1]).start();
+                } else if (parameters.length == 3) {
+                    p = new ProcessBuilder(this.getFilePath(), parameters[0], parameters[1], parameters[2]).start();
+                } else {
+                    processSucefull = false;
+                }
+            } else {
+                try {
+                    p = new ProcessBuilder(this.getFilePath(), params).start();
+                } catch (Exception e) {
+                    processSucefull = false;
+                }
+            }
+        } else {
+            try {
+                p = new ProcessBuilder(this.getFilePath()).start();
+            } catch (Exception e) {
+                processSucefull = false;
+            }
+
+        }
+
+        if (processSucefull) {
+            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = new String();
+            while ((line = input.readLine()) != null) {
+                this.concatResponse(line);
+            }
+            this.exeOut.write(this.response200());
+            this.exeOut.write(this.getServerResponse());
+            this.exeOut.write("\r\n");
+            this.exeOut.flush();
+            this.exeOut.write(this.getResponse());
+        } else {
+            this.response404();
+        }
+    }
+
 }

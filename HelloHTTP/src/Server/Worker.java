@@ -156,7 +156,7 @@ public class Worker extends Thread {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
                 if (messageBreaker[1].contains("?")) {
-                    String[] breakPath = messageBreaker[1].split("?");
+                    String[] breakPath = messageBreaker[1].split("\\?");
                     this.setPath(breakPath[0]);
                     this.setQueryParam(breakPath[1]);
                 } else {
@@ -282,15 +282,10 @@ public class Worker extends Thread {
                 this.out.flush();
                 this.out.write(wd.getFileInString());
             }else if (this.getPath().endsWith(".exe")){
-                WorkerExe we = new WorkerExe(this.getPath());
-                we.procedure();
-                this.out.write(this.response200());
-                //this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
-                //this.addToResponse("content-lenght: " + we.getFileLenght() + "\r\n");
-                this.out.write(this.getServerResponse());
-                this.out.write("\r\n");
-                this.out.flush();
-                this.out.write(we.getHtml());
+                WorkerExe we = new WorkerExe(this.getPath(),this.out, this.getServerResponse());
+                we.exec(this.getQueryParam());
+                //this.out.flush();
+                //this.out.write(we.getHtml());
             } 
             else {
                 File pathFile = new File(this.getPath());
