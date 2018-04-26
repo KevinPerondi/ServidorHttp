@@ -6,7 +6,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -16,9 +15,11 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,6 +42,7 @@ public class Worker extends Thread {
     private HashMap requestHeaderMap;
     private String serverResponse;
     private String queryParam;
+    private List<String> params;
 
     public Worker(Socket socket) throws IOException {
         this.socket = socket;
@@ -51,7 +53,16 @@ public class Worker extends Thread {
         this.serverResponse = new String();
         this.queryParam = new String();
         this.requestHeaderMap = new HashMap();
+        this.params = new ArrayList<>();
         this.start();
+    }
+
+    public List<String> getParams() {
+        return params;
+    }
+
+    public void setParams(List<String> params) {
+        this.params = params;
     }
 
     public String getQueryParam() {
@@ -147,6 +158,17 @@ public class Worker extends Thread {
         }
     }
 
+    public void getAllParameters() {
+        if (this.getQueryParam().contains("&")) {
+            String[] split = this.getQueryParam().split("&");
+            for (String s : split) {
+                this.params.add(s);
+            }
+        } else {
+            this.params.add(this.getQueryParam());
+        }
+    }
+
     public void processHeader() throws IOException {
         String message = null;
         boolean firstLine = true;
@@ -159,6 +181,7 @@ public class Worker extends Thread {
                     String[] breakPath = messageBreaker[1].split("\\?");
                     this.setPath(breakPath[0]);
                     this.setQueryParam(breakPath[1]);
+                    this.getAllParameters();
                 } else {
                     this.setPath(messageBreaker[1]);
                 }
@@ -281,13 +304,12 @@ public class Worker extends Thread {
                 this.out.write("\r\n");
                 this.out.flush();
                 this.out.write(wd.getFileInString());
-            }else if (this.getPath().endsWith(".exe")){
-                WorkerExe we = new WorkerExe(this.getPath(),this.out, this.getServerResponse());
+            } else if (this.getPath().endsWith(".exe")) {
+                WorkerExe we = new WorkerExe(this.getPath(), this.out, this.getServerResponse());
                 we.exec(this.getQueryParam());
                 //this.out.flush();
                 //this.out.write(we.getHtml());
-            } 
-            else {
+            } else {
                 File pathFile = new File(this.getPath());
                 this.out.write(this.response200());
                 this.addToResponse("content-type: " + Files.probeContentType(document) + "\r\n");
