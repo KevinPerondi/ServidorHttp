@@ -1,5 +1,6 @@
 package Server;
 
+import GRID.GridManager;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,7 +14,7 @@ public class Main {
         
         List<Neighbor> neighbors = new ArrayList<>();
         
-
+        GridManager gridManager = new GridManager(neighbors, port);
         
         ServerSocket ss = new ServerSocket(port);
         while (true) {
