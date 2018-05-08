@@ -6,7 +6,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -16,12 +15,15 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /*
 
@@ -39,6 +41,8 @@ public class Worker extends Thread {
     private String path;
     private HashMap requestHeaderMap;
     private String serverResponse;
+    private String queryParam;
+    private List<String> params;
 
     public Worker(Socket socket) throws IOException {
         this.socket = socket;
@@ -47,39 +51,26 @@ public class Worker extends Thread {
         this.path = null;
         this.method = null;
         this.serverResponse = new String();
+        this.queryParam = new String();
         this.requestHeaderMap = new HashMap();
+        this.params = new ArrayList<>();
         this.start();
     }
 
-    public void response404() throws IOException {
-        File file = new File("src/htmls/notfound.html");
-        Path filePath = Paths.get(file.getPath());
-        this.out.write("HTTP/1.1 404 NOT FOUND\r\n");
-        this.out.write("content-type: " + Files.probeContentType(filePath) + "\r\n");
-        this.out.write("content-lenght: " + file.length() + "\r\n");
-        this.out.write("\r\n");
-        this.out.flush();
-        this.writeFile(file);
+    public List<String> getParams() {
+        return params;
     }
 
-    public String response200() {
-        return ("HTTP/1.1 200 OK\r\n");
+    public void setParams(List<String> params) {
+        this.params = params;
     }
 
-    public void response401() throws IOException {
-        //this.out.write("HTTP/1.1 401 Unauthorized\r\n");
-        this.out.write("HTTP/1.1 401 Authorization Required\r\n");
-        this.out.write("WWW-Authenticate: Basic realm=\"User Visible Realm\"");
-        this.out.write("\r\n");
-        this.out.flush();
+    public String getQueryParam() {
+        return queryParam;
     }
 
-    public void response301() throws IOException {
-        this.out.write("HTTP/1.1 301 Moved Permanently\r\n");
-        this.addToResponse("Location: " + this.getPath() + "/\r\n");
-        this.out.write(this.getServerResponse());
-        this.out.write("\r\n");
-        this.out.flush();
+    public void setQueryParam(String queryParam) {
+        this.queryParam = queryParam;
     }
 
     public HttpMethod checkMethod(String message) {
@@ -118,11 +109,63 @@ public class Worker extends Thread {
         this.requestHeaderMap = requestHeaderMap;
     }
 
+    public String fileToString(String filePath) throws FileNotFoundException {
+        Scanner scan = new Scanner(new File(filePath));
+        String fileInSTR = new String();
+        while (scan.hasNextLine()) {
+            fileInSTR = fileInSTR.concat(scan.nextLine());
+        }
+        fileInSTR = fileInSTR.trim();
+        return fileInSTR;
+    }
+
+    public void response404() throws IOException {
+        File file = new File("src/htmls/notfound.html");
+        Path filePath = Paths.get(file.getPath());
+        this.out.write("HTTP/1.1 404 NOT FOUND\r\n");
+        this.out.write("content-type: " + Files.probeContentType(filePath) + "\r\n");
+        this.out.write("content-lenght: " + file.length() + "\r\n");
+        this.out.write("\r\n");
+        this.out.flush();
+        this.writeFile(file);
+    }
+
+    public String response200() {
+        return ("HTTP/1.1 200 OK\r\n");
+    }
+
+    public void response401() throws IOException {
+        //this.out.write("HTTP/1.1 401 Unauthorized\r\n");
+        this.out.write("HTTP/1.1 401 Authorization Required\r\n");
+        this.out.write("WWW-Authenticate: Basic realm=\"User Visible Realm\"");
+        this.out.write("\r\n");
+        this.out.flush();
+    }
+
+    public void response301() throws IOException {
+        this.out.write("HTTP/1.1 301 Moved Permanently\r\n");
+        this.addToResponse("Location: " + this.getPath() + "/\r\n");
+        this.out.write(this.getServerResponse());
+        this.out.write("\r\n");
+        this.out.flush();
+    }
+
     public boolean containsCookie() {
         if (this.getRequestHeaderMap().containsKey("Cookie")) {
             return true;
         } else {
             return false;
+        }
+    }
+
+    public void getAllParameters() {
+        if (this.getQueryParam().contains("&")) {
+            String[] split = this.getQueryParam().split("&");
+            for (String s : split) {
+                this.params.add(s);
+            }
+        } else {
+            this.params.add(this.getQueryParam());
         }
     }
 
@@ -134,7 +177,14 @@ public class Worker extends Thread {
             if (firstLine) {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
-                this.setPath(messageBreaker[1]);
+                if (messageBreaker[1].contains("?")) {
+                    String[] breakPath = messageBreaker[1].split("\\?");
+                    this.setPath(breakPath[0]);
+                    this.setQueryParam(breakPath[1]);
+                    this.getAllParameters();
+                } else {
+                    this.setPath(messageBreaker[1]);
+                }
                 firstLine = false;
             } else {
                 messageBreaker = message.split(": ");
@@ -164,37 +214,16 @@ public class Worker extends Thread {
         }
     }
 
-    public String folderHtml(File[] filesList) {
+    public String folderHtml(File[] filesList) throws FileNotFoundException {
         String htmlInjection = new String();
-
         for (File f : filesList) {
             htmlInjection = htmlInjection.concat("<tr><td><a href=\"" + f.getName() + "\">" + f.getName()
                     + "</a></td><td>" + f.length() + "</td></tr>\n");
         }
-
-        String html = "<!DOCTYPE html>\n"
-                + "<html>\n"
-                + "    <head>\n"
-                + "        <!--<title>TODO supply a title</title>-->\n"
-                + "        <meta charset=\"UTF-8\">\n"
-                + "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-                + "    </head>\n"
-                + "    <body>\n"
-                + "        <div style=\"width: 80%\">\n"
-                + "            <h1>Conteúdo</h1>\n"
-                + "            <table style=\"width: 90%\">\n"
-                + "                <tr>\n"
-                + "                    <th>File Name</th>\n"
-                + "                    <th>Size</th>\n"
-                + "                </tr>\n"
-                + htmlInjection
-                + "            </table>\n"
-                + "        </div>\n"
-                + "        \n"
-                + "    </body>\n"
-                + "</html>";
-        html = html.trim();
-        return html;
+        String file = this.fileToString("src/htmls/diretorios.html");
+        String regex = Pattern.quote("<%") + "(.*?)" + Pattern.quote("%>");
+        file = file.replaceAll(regex, htmlInjection);
+        return file;
     }
 
     public boolean isAuthorized() throws UnsupportedEncodingException {
@@ -258,6 +287,7 @@ public class Worker extends Thread {
                     this.out.write(this.response200());
                     this.out.write(this.getServerResponse());
                     this.out.write("\r\n");
+                    this.out.flush();
                     this.out.write(this.folderHtml(files));
                 }
             } else {
@@ -274,6 +304,11 @@ public class Worker extends Thread {
                 this.out.write("\r\n");
                 this.out.flush();
                 this.out.write(wd.getFileInString());
+            } else if (this.getPath().endsWith(".exe")) {
+                WorkerExe we = new WorkerExe(this.getPath(), this.out, this.getServerResponse());
+                we.exec(this.getQueryParam());
+                //this.out.flush();
+                //this.out.write(we.getHtml());
             } else {
                 File pathFile = new File(this.getPath());
                 this.out.write(this.response200());
