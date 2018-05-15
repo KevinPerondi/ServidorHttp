@@ -25,7 +25,7 @@ public class GridManager extends Thread {
     private DatagramSocket dataSocket;
 
     public GridManager(List<Neighbor> neighbors, int httpPort) throws UnknownHostException, SocketException {
-        this.broadcastPort = 5454;
+        this.broadcastPort = 5554;
         this.numeroPortaHTTP = httpPort;
         this.neighbors = neighbors;
         this.numeroPortaRespostaUnicast = 6969;

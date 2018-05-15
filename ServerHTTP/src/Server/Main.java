@@ -16,6 +16,9 @@ public class Main {
         
         GridManager gridManager = new GridManager(neighbors, port);
         
+        //thread que fica imprimindo a lista de vizinho
+        //ShowNeighbors sn = new ShowNeighbors(neighbors);
+        
         ServerSocket ss = new ServerSocket(port);
         while (true) {
             Socket socket = ss.accept();

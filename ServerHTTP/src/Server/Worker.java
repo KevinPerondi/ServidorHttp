@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 
 https://www.ietf.org/rfc/rfc2616.txt
 https://tools.ietf.org/html/rfc6265
-http://fisica.ufpr.br/kurumin/
 
  */
 public class Worker extends Thread {
@@ -331,7 +330,6 @@ public class Worker extends Thread {
             }
         } else {
             if (this.hasNeighbors()) {
-                
             } else {
                 this.response404();
             }

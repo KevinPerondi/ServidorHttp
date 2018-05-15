@@ -4,7 +4,6 @@ import Server.Neighbor;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.List;
 import java.util.logging.Level;
@@ -93,7 +92,6 @@ public class GridSender extends Thread {
             Logger.getLogger(GridSender.class.getName()).log(Level.SEVERE, null, ex);
         }
         if (!this.containdIP()) {
-            //pra que colocar a porta 8080 se o SD já passa a porta http dele ?
             Neighbor neig = new Neighbor(this.getIp(), httpPort);
             this.neighbors.add(neig);
         }

@@ -3,7 +3,6 @@ package GRID;
 import Server.Neighbor;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
@@ -63,8 +62,8 @@ public class GridReceiver extends Thread {
 
 class newClient extends Thread {
 
-    private final Socket socket;
-    private final List<Neighbor> neighbors;
+    private Socket socket;
+    private List<Neighbor> neighbors;
     private DataInputStream in;
 
     public newClient(Socket s, List<Neighbor> neighs) throws IOException {
@@ -76,9 +75,11 @@ class newClient extends Thread {
 
     @Override
     public void run() {
-        String message = new String();
+        String message;
+        byte[] msg = new byte[1024];
         try {
-            message = in.readUTF();
+            this.in.read(msg);
+            message = new String(msg);
             if (message.startsWith("AD")) {
                 String[] splitter = message.split("AD");
                 Neighbor ng = new Neighbor(this.socket.getInetAddress().toString(), splitter[1]);
