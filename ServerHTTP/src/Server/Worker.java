@@ -43,8 +43,9 @@ public class Worker extends Thread {
     private String serverResponse;
     private String queryParam;
     private List<String> params;
+    private List<Neighbor> neighbors;
 
-    public Worker(Socket socket) throws IOException {
+    public Worker(Socket socket, List<Neighbor> neighs) throws IOException {
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
         this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
@@ -54,7 +55,16 @@ public class Worker extends Thread {
         this.queryParam = new String();
         this.requestHeaderMap = new HashMap();
         this.params = new ArrayList<>();
+        this.neighbors = neighs;
         this.start();
+    }
+
+    public List<Neighbor> getNeighbors() {
+        return neighbors;
+    }
+
+    public void setNeighbors(List<Neighbor> neighbors) {
+        this.neighbors = neighbors;
     }
 
     public List<String> getParams() {
@@ -170,7 +180,7 @@ public class Worker extends Thread {
     }
 
     public void processHeader() throws IOException {
-        String message = null;
+        String message = new String();
         boolean firstLine = true;
         String[] messageBreaker = null;
         while (!(message = in.readLine()).equals("")) {
@@ -320,7 +330,27 @@ public class Worker extends Thread {
                 this.writeFile(pathFile);
             }
         } else {
-            this.response404();
+            if (this.hasNeighbors()) {
+                
+            } else {
+                this.response404();
+            }
+        }
+    }
+
+    public void contactNeighbors(){
+        for (Neighbor neigh : this.getNeighbors()){
+            if (!neigh.passedStatus()){
+                
+            }
+        }
+    }
+    
+    public boolean hasNeighbors() {
+        if (this.neighbors.isEmpty()) {
+            return false;
+        } else {
+            return true;
         }
     }
 

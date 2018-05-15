@@ -20,7 +20,7 @@ public class Main {
         while (true) {
             Socket socket = ss.accept();
             System.out.println("Client [" + socket.getInetAddress() + "] conectado. Criando Thread...");
-            Worker client = new Worker(socket);
+            Worker client = new Worker(socket, neighbors);
         }
     }
 }

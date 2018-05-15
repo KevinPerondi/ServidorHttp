@@ -14,7 +14,7 @@ public class GridReceiver extends Thread {
 
     private ServerSocket ss;
     private int serverPort;
-    private final List<Neighbor> neighbors;
+    private List<Neighbor> neighbors;
 
     public GridReceiver(int port, List<Neighbor> neighs) {
         this.serverPort = port;
@@ -24,6 +24,14 @@ public class GridReceiver extends Thread {
 
     public ServerSocket getSs() {
         return ss;
+    }
+
+    public List<Neighbor> getNeighbors() {
+        return neighbors;
+    }
+
+    public void setNeighbors(List<Neighbor> neighbors) {
+        this.neighbors = neighbors;
     }
 
     public void setSs(ServerSocket ss) {
@@ -44,7 +52,7 @@ public class GridReceiver extends Thread {
             this.ss = new ServerSocket(this.getServerPort());
             while (true) {
                 Socket s = ss.accept();
-                newClient client = new newClient(s,this.neighbors);
+                newClient client = new newClient(s, this.neighbors);
             }
         } catch (IOException ex) {
             Logger.getLogger(GridReceiver.class.getName()).log(Level.SEVERE, null, ex);

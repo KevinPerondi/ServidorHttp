@@ -1,24 +1,31 @@
 package Server;
 
 import java.io.FileNotFoundException;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 
 public class WorkerDyn_teste {
-    public static void main(String[] args) throws FileNotFoundException {
-        String x = "SD12345 12988";
-        
-        String[] xx = x.split(" ");
-        
-        for (String y : xx){
-            System.out.println("oi "+y);
+
+    public static void main(String[] args) throws FileNotFoundException, UnknownHostException, SocketException {
+        List<InetAddress> broadIps = new ArrayList<>();
+
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface ni = interfaces.nextElement();
+            if (!ni.isLoopback()) {
+                for (InterfaceAddress interfacesAddress : ni.getInterfaceAddresses()) {
+                    InetAddress broadcastIP = interfacesAddress.getBroadcast();
+                    if (!(broadcastIP == null)) {
+                        broadIps.add(broadcastIP);
+                    }
+                }
+            }
         }
-        String[] bb = xx[0].split("SD");
-        String aaa = xx[0].substring(xx[0].indexOf("SD"), xx[0].length());
-        System.out.println("aa: "+aaa);
-        System.out.println("b: "+bb[1]);
-        /*WorkerDyn wd = new WorkerDyn("src/htmls/teste.html");
-        
-        wd.procedure();
-        */
-        
     }
 }

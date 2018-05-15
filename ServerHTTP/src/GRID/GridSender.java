@@ -13,8 +13,8 @@ import java.util.logging.Logger;
 public class GridSender extends Thread {
 
     private final DatagramPacket pack;
-    private final List<Neighbor> neighbors;
     private final int myHttpPort;
+    private List<Neighbor> neighbors;
     private String message;
     private String ip;
 
@@ -24,6 +24,14 @@ public class GridSender extends Thread {
         this.myHttpPort = httpPort;
         this.ip = new String();
         this.start();
+    }
+
+    public List<Neighbor> getNeighbors() {
+        return neighbors;
+    }
+
+    public void setNeighbors(List<Neighbor> neighbors) {
+        this.neighbors = neighbors;
     }
 
     public String getMessage() {
