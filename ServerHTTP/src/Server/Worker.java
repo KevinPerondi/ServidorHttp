@@ -330,6 +330,7 @@ public class Worker extends Thread {
             }
         } else {
             if (this.hasNeighbors()) {
+                this.response404();
             } else {
                 this.response404();
             }
