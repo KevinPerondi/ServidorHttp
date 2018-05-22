@@ -43,6 +43,7 @@ public class Worker extends Thread {
     private String queryParam;
     private List<String> params;
     private List<Neighbor> neighbors;
+    private String content;
 
     public Worker(Socket socket, List<Neighbor> neighs) throws IOException {
         this.socket = socket;
@@ -55,7 +56,16 @@ public class Worker extends Thread {
         this.requestHeaderMap = new HashMap();
         this.params = new ArrayList<>();
         this.neighbors = neighs;
+        this.content = new String();
         this.start();
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 
     public List<Neighbor> getNeighbors() {
@@ -183,6 +193,7 @@ public class Worker extends Thread {
         boolean firstLine = true;
         String[] messageBreaker = null;
         while (!(message = in.readLine()).equals("")) {
+            System.out.println(message);
             if (firstLine) {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
@@ -200,8 +211,22 @@ public class Worker extends Thread {
                 this.requestHeaderMap.put(messageBreaker[0], messageBreaker[1]);
             }
         }
+        if (this.requestHeaderMap.containsKey("Content-Type") && this.requestHeaderMap.containsKey("Content-Length")){
+            this.processHeaderContent();
+        }
     }
 
+    public void processHeaderContent() throws IOException{
+        System.out.println("OOOPA");
+        String contentMessage = new String();
+        while(!(contentMessage = in.readLine()).equals("")){
+            System.out.println(contentMessage);
+            this.content = this.getContent().concat(contentMessage);
+        }
+        System.out.println("DORINHO OI?");
+        System.out.println(this.getContent());
+    }
+    
     public void writeFile(File file) throws IOException {
         byte[] buffer = new byte[1024];
         int bytesRead;
@@ -284,6 +309,10 @@ public class Worker extends Thread {
         this.addToResponse("Date: " + data.toString() + "\r\n");
     }
 
+    public void methodPOST(){
+        System.out.println("methodPOST");
+    }
+    
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -371,7 +400,7 @@ public class Worker extends Thread {
                 break;
             case POST:
                 System.out.println("POST");
-                break;
+                this.methodPOST();
             case PUT:
                 System.out.println("PUT");
                 break;
