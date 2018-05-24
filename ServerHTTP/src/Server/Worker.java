@@ -211,22 +211,22 @@ public class Worker extends Thread {
                 this.requestHeaderMap.put(messageBreaker[0], messageBreaker[1]);
             }
         }
-        if (this.requestHeaderMap.containsKey("Content-Type") && this.requestHeaderMap.containsKey("Content-Length")){
-            this.processHeaderContent();
+        if (this.getMethod().equals(HttpMethod.POST)) {
+            this.processContent();
         }
     }
 
-    public void processHeaderContent() throws IOException{
-        System.out.println("OOOPA");
+    public void processContent() throws IOException {
+        System.out.println("processContent");
         String contentMessage = new String();
-        while(!(contentMessage = in.readLine()).equals("")){
+        while (!(contentMessage = in.readLine()).equals("\r\n")) {
             System.out.println(contentMessage);
             this.content = this.getContent().concat(contentMessage);
         }
         System.out.println("DORINHO OI?");
         System.out.println(this.getContent());
     }
-    
+
     public void writeFile(File file) throws IOException {
         byte[] buffer = new byte[1024];
         int bytesRead;
@@ -309,10 +309,10 @@ public class Worker extends Thread {
         this.addToResponse("Date: " + data.toString() + "\r\n");
     }
 
-    public void methodPOST(){
+    public void methodPOST() {
         System.out.println("methodPOST");
     }
-    
+
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -366,14 +366,14 @@ public class Worker extends Thread {
         }
     }
 
-    public void contactNeighbors(){
-        for (Neighbor neigh : this.getNeighbors()){
-            if (!neigh.passedStatus()){
-                
+    public void contactNeighbors() {
+        for (Neighbor neigh : this.getNeighbors()) {
+            if (!neigh.passedStatus()) {
+
             }
         }
     }
-    
+
     public boolean hasNeighbors() {
         if (this.neighbors.isEmpty()) {
             return false;
