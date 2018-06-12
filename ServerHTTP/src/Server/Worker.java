@@ -216,10 +216,11 @@ public class Worker extends Thread {
         }
     }
 
+    //Arrumar o processamento do content
     public void processContent() throws IOException {
         System.out.println("processContent");
         String contentMessage = new String();
-        while (!(contentMessage = in.readLine()).equals("\r\n")) {
+        while (!(contentMessage = in.readLine()).isEmpty()) {
             System.out.println(contentMessage);
             this.content = this.getContent().concat(contentMessage);
         }
