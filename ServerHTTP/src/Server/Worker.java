@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -188,22 +189,22 @@ public class Worker extends Thread {
         }
     }
 
-    public void processHeader() throws IOException {
+    public void processHeader() throws IOException, URISyntaxException {
         String message = new String();
         boolean firstLine = true;
         String[] messageBreaker = null;
         while (!(message = in.readLine()).equals("")) {
-            System.out.println(message);
+            //System.out.println(message);
             if (firstLine) {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
                 if (messageBreaker[1].contains("?")) {
                     String[] breakPath = messageBreaker[1].split("\\?");
-                    this.setPath(breakPath[0]);
+                    this.setPath(new java.net.URI(breakPath[0]).getPath());
                     this.setQueryParam(breakPath[1]);
                     this.getAllParameters();
                 } else {
-                    this.setPath(messageBreaker[1]);
+                    this.setPath(new java.net.URI(messageBreaker[1]).getPath());
                 }
                 firstLine = false;
             } else {
@@ -218,6 +219,14 @@ public class Worker extends Thread {
 
     //Arrumar o processamento do content
     public void processContent() throws IOException {
+
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        
+        /*while ((bytesRead = in.read(buffer)) != -1) {
+
+        }*/
+
         System.out.println("processContent");
         String contentMessage = new String();
         while (!(contentMessage = in.readLine()).isEmpty()) {
@@ -432,6 +441,8 @@ public class Worker extends Thread {
             this.in.close();
             this.socket.close();
         } catch (IOException ex) {
+            Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (URISyntaxException ex) {
             Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
