@@ -45,8 +45,9 @@ public class Worker extends Thread {
     private List<String> params;
     private List<Neighbor> neighbors;
     private String content;
+    private Telemetria telemetria;
 
-    public Worker(Socket socket, List<Neighbor> neighs) throws IOException {
+    public Worker(Socket socket, List<Neighbor> neighs, Telemetria telemetria) throws IOException {
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
         this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
@@ -57,8 +58,8 @@ public class Worker extends Thread {
         this.requestHeaderMap = new HashMap();
         this.params = new ArrayList<>();
         this.neighbors = neighs;
-        this.content = new String();
-        this.start();
+        this.content = null;
+        this.telemetria = telemetria;
     }
 
     public String getContent() {
@@ -103,6 +104,10 @@ public class Worker extends Thread {
 
     public void setMethod(HttpMethod method) {
         this.method = method;
+    }
+
+    public Telemetria getTelemetria() {
+        return telemetria;
     }
 
     public String getPath() {
@@ -214,27 +219,15 @@ public class Worker extends Thread {
         }
     }
 
-    //Arrumar o processamento do content
     public void processContent() throws IOException {
+        int contLength = Integer.parseInt((String) this.getRequestHeaderMap().get("Content-Length"));
 
-        byte[] buffer = new byte[1024];
-        int bytesRead;
+        char[] buf = new char[contLength];
+        in.read(buf);
 
-        char[] buf = new char[1024];
-
-        while ((bytesRead = in.read(buf)) != -1) {
-            String nova = new String(buf);
-            System.out.println(nova);
-        }
-
-        System.out.println("processContent");
-        String contentMessage = new String();
-        while (!(contentMessage = in.readLine()).isEmpty()) {
-            System.out.println(contentMessage);
-            this.content = this.getContent().concat(contentMessage);
-        }
-        System.out.println("DORINHO OI?");
-        System.out.println(this.getContent());
+        String contentReader = new String(buf);
+        String[] splitter = contentReader.split("=");
+        this.setContent(splitter[1]);
     }
 
     public void writeFile(File file) throws IOException {
@@ -321,9 +314,23 @@ public class Worker extends Thread {
 
     public void methodPOST() throws IOException {
         this.processContent();
-        System.out.println("methodPOST");
     }
 
+    public String telemetriaHTML() throws FileNotFoundException{
+        Scanner scan = new Scanner(new File("src/htmls/telemetria.html"));
+        String finalString = new String();
+        while(scan.hasNextLine()){
+            finalString = finalString.concat(scan.nextLine());
+        }
+        String tempOnlineRegex = Pattern.quote("<%1")+"(.*?)"+Pattern.quote("1%>");
+        String numConRegex = Pattern.quote("<%2")+"(.*?)"+Pattern.quote("2%>");
+        
+        finalString = finalString.replaceAll(tempOnlineRegex, this.getTelemetria().serverOnlineTimeLong()/1000+"s");
+        finalString = finalString.replaceAll(numConRegex, this.getTelemetria().getConnectionsNumber()+"");
+        
+        return finalString;
+    }
+    
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -367,6 +374,22 @@ public class Worker extends Thread {
                 this.out.write("\r\n");
                 this.out.flush();
                 this.writeFile(pathFile);
+            }
+        } else if (this.getPath().startsWith("/virtual")) {
+            if (this.getPath().endsWith("telemetria")) {
+                File file = new File("src/htmls/telemetria.html");
+                Path filePath = Paths.get(file.getPath());
+                this.out.write(response200());
+                this.addToResponse("content-type: " + Files.probeContentType(filePath) + "\r\n");
+                this.addToResponse("content-lenght: " + file.length() + "\r\n");
+                this.out.write(this.getServerResponse());
+                this.out.write("\r\n");
+                this.out.flush();
+                this.out.write(this.telemetriaHTML());
+            } else if (this.getPath().endsWith("status")) {
+
+            } else {
+                this.response404();
             }
         } else {
             if (this.hasNeighbors()) {
@@ -426,10 +449,6 @@ public class Worker extends Thread {
 
     @Override
     public void run() {
-
-        if (1 == 1) {
-            throw new RuntimeException();
-        }
         try {
             this.processHeader();
             this.prepareResponse();

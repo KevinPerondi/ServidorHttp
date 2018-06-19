@@ -12,6 +12,8 @@ public class Main {
     public static void main(String[] args) throws IOException {
         int port = 5555;
         
+        Telemetria telemetria = new Telemetria();
+        
         List<Neighbor> neighbors = new ArrayList<>();
         
         GridManager gridManager = new GridManager(neighbors, port);
@@ -23,7 +25,9 @@ public class Main {
         while (true) {
             Socket socket = ss.accept();
             System.out.println("Client [" + socket.getInetAddress() + "] conectado. Criando Thread...");
-            Worker client = new Worker(socket, neighbors);
+            Worker client = new Worker(socket, neighbors, telemetria);
+            client.start();
+            telemetria.increseConnectionNumber();
         }
     }
 }
