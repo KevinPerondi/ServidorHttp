@@ -194,7 +194,7 @@ public class Worker extends Thread {
         boolean firstLine = true;
         String[] messageBreaker = null;
         while (!(message = in.readLine()).equals("")) {
-            //System.out.println(message);
+            System.out.println(message);
             if (firstLine) {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
@@ -212,9 +212,6 @@ public class Worker extends Thread {
                 this.requestHeaderMap.put(messageBreaker[0], messageBreaker[1]);
             }
         }
-        if (this.getMethod().equals(HttpMethod.POST)) {
-            this.processContent();
-        }
     }
 
     //Arrumar o processamento do content
@@ -222,10 +219,13 @@ public class Worker extends Thread {
 
         byte[] buffer = new byte[1024];
         int bytesRead;
-        
-        /*while ((bytesRead = in.read(buffer)) != -1) {
 
-        }*/
+        char[] buf = new char[1024];
+
+        while ((bytesRead = in.read(buf)) != -1) {
+            String nova = new String(buf);
+            System.out.println(nova);
+        }
 
         System.out.println("processContent");
         String contentMessage = new String();
@@ -319,7 +319,8 @@ public class Worker extends Thread {
         this.addToResponse("Date: " + data.toString() + "\r\n");
     }
 
-    public void methodPOST() {
+    public void methodPOST() throws IOException {
+        this.processContent();
         System.out.println("methodPOST");
     }
 
@@ -425,6 +426,10 @@ public class Worker extends Thread {
 
     @Override
     public void run() {
+
+        if (1 == 1) {
+            throw new RuntimeException();
+        }
         try {
             this.processHeader();
             this.prepareResponse();
