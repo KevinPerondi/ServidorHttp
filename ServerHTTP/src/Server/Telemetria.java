@@ -1,23 +1,26 @@
 package Server;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import javafx.util.converter.LocalDateTimeStringConverter;
 
 public class Telemetria {
 
-    private Date serverStartTime;
     private int connectionsNumber;
+    private LocalDateTime startTime;
 
     public Telemetria() {
         this.connectionsNumber = 0;
-        this.serverStartTime = new Date();
+        this.startTime = LocalDateTime.now();
     }
 
-    public Date getServerStartTime() {
-        return serverStartTime;
+    public LocalDateTime getStartTime() {
+        return startTime;
     }
 
-    public void setServerStartTime(Date serverStartTime) {
-        this.serverStartTime = serverStartTime;
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
     }
 
     public int getConnectionsNumber() {
@@ -32,14 +35,27 @@ public class Telemetria {
         this.connectionsNumber++;
     }
 
-    public long serverOnlineTimeLong() {
-        Date instantDate = new Date();
-        return instantDate.getTime() - this.getServerStartTime().getTime();        
-    }    
-    
-    public Date serverOnlineTime() {
-        Date instantDate = new Date();
-        long timeDif = instantDate.getTime() - this.getServerStartTime().getTime();
-        return new Date(timeDif);
+    public String getServerOnlineTime() {
+        String str = new String();
+        LocalDateTime nowTime = LocalDateTime.now();
+
+        long miliDif = java.time.Duration.between(this.getStartTime(), nowTime).toMillis();
+
+        long sec = (miliDif / 1000) % 60;
+        long min = (miliDif / (60 * 1000)) % 60;
+        long hours = (miliDif / (60 * 60 * 1000)) % 24;
+
+        str = hours + ":" + min + ":" + sec;
+
+        return str;
+    }
+
+    public String getStartTimeInfo() {
+        String str = new String();
+        str = String.format("%02d", this.getStartTime().getDayOfMonth()) + "-"
+                + String.format("%02d", this.getStartTime().getMonthValue())
+                + "-" + this.getStartTime().getYear() + " " + String.format("%02d", this.getStartTime().getHour())
+                + ":" + String.format("%02d", this.getStartTime().getMinute()) + ":" + this.getStartTime().getSecond();
+        return str;
     }
 }

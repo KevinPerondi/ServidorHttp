@@ -7,13 +7,14 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
 public class WorkerDyn_teste {
 
     public static void main(String[] args) throws FileNotFoundException, UnknownHostException, SocketException {
-        List<InetAddress> broadIps = new ArrayList<>();
+        /*List<InetAddress> broadIps = new ArrayList<>();
 
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
         while (interfaces.hasMoreElements()) {
@@ -26,6 +27,8 @@ public class WorkerDyn_teste {
                     }
                 }
             }
-        }
+        }*/
+        Date d = new Date();
+        System.out.println(d);
     }
 }

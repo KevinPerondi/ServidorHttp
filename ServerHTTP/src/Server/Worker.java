@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -228,6 +229,7 @@ public class Worker extends Thread {
         String contentReader = new String(buf);
         String[] splitter = contentReader.split("=");
         this.setContent(splitter[1]);
+        this.writeFeedback();
     }
 
     public void writeFile(File file) throws IOException {
@@ -314,6 +316,12 @@ public class Worker extends Thread {
 
     public void methodPOST() throws IOException {
         this.processContent();
+        this.writeFeedback();
+        if (this.getPath().endsWith("/virtual/feedback")){
+            System.out.println(this.getPath());
+            this.setPath("");
+            this.response301();
+        }
     }
 
     public String telemetriaHTML() throws FileNotFoundException{
@@ -322,10 +330,12 @@ public class Worker extends Thread {
         while(scan.hasNextLine()){
             finalString = finalString.concat(scan.nextLine());
         }
-        String tempOnlineRegex = Pattern.quote("<%1")+"(.*?)"+Pattern.quote("1%>");
-        String numConRegex = Pattern.quote("<%2")+"(.*?)"+Pattern.quote("2%>");
+        String inicioRegex = Pattern.quote("<%1")+"(.*?)"+Pattern.quote("1%>");
+        String tempOnlineRegex = Pattern.quote("<%2")+"(.*?)"+Pattern.quote("2%>");
+        String numConRegex = Pattern.quote("<%3")+"(.*?)"+Pattern.quote("3%>");
         
-        finalString = finalString.replaceAll(tempOnlineRegex, this.getTelemetria().serverOnlineTimeLong()/1000+"s");
+        finalString = finalString.replaceAll(inicioRegex, this.getTelemetria().getStartTimeInfo());
+        finalString = finalString.replaceAll(tempOnlineRegex, this.getTelemetria().getServerOnlineTime());
         finalString = finalString.replaceAll(numConRegex, this.getTelemetria().getConnectionsNumber()+"");
         
         return finalString;
@@ -375,8 +385,8 @@ public class Worker extends Thread {
                 this.out.flush();
                 this.writeFile(pathFile);
             }
-        } else if (this.getPath().startsWith("/virtual")) {
-            if (this.getPath().endsWith("telemetria")) {
+        } else if (this.getPath().startsWith("/virtual/status/")) {
+            if (this.getPath().endsWith("telemetria.html")) {
                 File file = new File("src/htmls/telemetria.html");
                 Path filePath = Paths.get(file.getPath());
                 this.out.write(response200());
@@ -386,7 +396,7 @@ public class Worker extends Thread {
                 this.out.write("\r\n");
                 this.out.flush();
                 this.out.write(this.telemetriaHTML());
-            } else if (this.getPath().endsWith("status")) {
+            } else if (this.getPath().endsWith("telemetria.js")) {
 
             } else {
                 this.response404();
@@ -469,6 +479,16 @@ public class Worker extends Thread {
         } catch (URISyntaxException ex) {
             Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private void writeFeedback() throws IOException {
+        Date d = new Date();
+        File f = new File("src/Feedbacks/"+d);
+        FileWriter fw = new FileWriter(f);
+        
+        fw.write(this.getContent());
+        
+        fw.close();
     }
 
 }
