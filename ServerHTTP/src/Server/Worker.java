@@ -320,7 +320,6 @@ public class Worker extends Thread {
         this.processContent();
         this.writeFeedback();
         if (this.getPath().endsWith("/virtual/feedback")) {
-            System.out.println(this.getPath());
             this.setPath("");
             this.response301();
         }
@@ -345,7 +344,7 @@ public class Worker extends Thread {
 
     public void writeBuffer(byte[] byteBuffer) throws IOException {
         OutputStream dataOut = new DataOutputStream(this.socket.getOutputStream());
-        dataOut.write(byteBuffer,0,byteBuffer.length);
+        dataOut.write(byteBuffer, 0, byteBuffer.length);
         dataOut.flush();
     }
 
@@ -405,7 +404,15 @@ public class Worker extends Thread {
                 this.out.flush();
                 this.out.write(this.telemetriaHTML());
             } else if (this.getPath().equals("/virtual/status/telemetria.js")) {
-
+                File file = new File("src/htmls/angularTelemetria.html");
+                Path filePath = Paths.get(file.getPath());
+                this.out.write(this.response200());
+                this.addToResponse("content-type: " + Files.probeContentType(filePath) + "\r\n");
+                this.addToResponse("content-lenght: " + file.length() + "\r\n");
+                this.out.write(this.getServerResponse());
+                this.out.write("\r\n");
+                this.out.flush();
+                this.writeFile(file);
             } else {
                 this.response404();
             }
@@ -420,7 +427,8 @@ public class Worker extends Thread {
             byte[] buffer = json.toString().getBytes();
             this.out.write(this.response200());
             this.addToResponse("content-type: application/json\r\n");
-            this.addToResponse("content-lenght: " + buffer.length+"\r\n");
+            this.addToResponse("content-lenght: " + buffer.length + "\r\n");
+            this.addToResponse("Access-Control-Allow-Origin: *\r\n");
             this.out.write(this.getServerResponse());
             this.out.write("\r\n");
             this.out.flush();

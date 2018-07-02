@@ -1,15 +1,57 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Telemetria Kevin-Server</title>
-        <meta charset="UTF-8">
-        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
-    </head>
-    <body>
-        <div ng-app="">
-            <p>Input something in the input box:</p>
-            <p>Name : <input type="text" ng-model="name" placeholder="Enter name here"></p>
-            <h1>Hello {{name}}</h1>
-        </div>
-    </body>
+
+<head>
+    <title>Telemetria Kevin-Server</title>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="divzinha" ng-app="myApp" ng-controller="myCtrl">
+        <p class="pzin">Data inicial : {{dataInicial}}</p>
+        <p class="pzin2">Tempo online : {{tempoOnline}}</p>
+        <p class="pzin3">Total de conexões : {{conexoes}}</p>
+    </div>
+</body>
+
+<style>
+p.pzin{
+    color: blueviolet;
+    font-size: 40px;
+}
+p.pzin2{
+    color: brown;
+    font-size: 30px;
+}
+p.pzin3{
+    color: chocolate;
+    font-size: 20px;
+}
+.divzinha{
+    text-align: center;
+    border: black;
+    border-style: solid;
+    margin: auto;
+}
+</style>
+
+<script>
+
+    var app = angular.module('myApp', []);
+    app.controller('myCtrl', function ($scope, $http, $interval) {
+        this.interval = $interval (function(){
+        $http.get("http://localhost:5555/virtual/telemetria/status.json")
+            .then(function (response) {
+                $scope.dataInicial = response.data.startTimeInfo;
+                $scope.tempoOnline = response.data.onlineTime;
+                $scope.conexoes = response.data.conexoes;
+            });
+        },1000);
+    });
+
+</script>
+
+
 </html>
