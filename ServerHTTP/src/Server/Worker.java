@@ -26,6 +26,8 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import jdk.nashorn.internal.parser.JSONParser;
+import org.json.simple.JSONObject;
 
 /*
 
@@ -200,7 +202,7 @@ public class Worker extends Thread {
         boolean firstLine = true;
         String[] messageBreaker = null;
         while (!(message = in.readLine()).equals("")) {
-            System.out.println(message);
+            //System.out.println(message);
             if (firstLine) {
                 messageBreaker = message.split(" ");
                 this.setMethod(this.checkMethod(messageBreaker[0]));
@@ -317,30 +319,36 @@ public class Worker extends Thread {
     public void methodPOST() throws IOException {
         this.processContent();
         this.writeFeedback();
-        if (this.getPath().endsWith("/virtual/feedback")){
+        if (this.getPath().endsWith("/virtual/feedback")) {
             System.out.println(this.getPath());
             this.setPath("");
             this.response301();
         }
     }
 
-    public String telemetriaHTML() throws FileNotFoundException{
+    public String telemetriaHTML() throws FileNotFoundException {
         Scanner scan = new Scanner(new File("src/htmls/telemetria.html"));
         String finalString = new String();
-        while(scan.hasNextLine()){
+        while (scan.hasNextLine()) {
             finalString = finalString.concat(scan.nextLine());
         }
-        String inicioRegex = Pattern.quote("<%1")+"(.*?)"+Pattern.quote("1%>");
-        String tempOnlineRegex = Pattern.quote("<%2")+"(.*?)"+Pattern.quote("2%>");
-        String numConRegex = Pattern.quote("<%3")+"(.*?)"+Pattern.quote("3%>");
-        
+        String inicioRegex = Pattern.quote("<%1") + "(.*?)" + Pattern.quote("1%>");
+        String tempOnlineRegex = Pattern.quote("<%2") + "(.*?)" + Pattern.quote("2%>");
+        String numConRegex = Pattern.quote("<%3") + "(.*?)" + Pattern.quote("3%>");
+
         finalString = finalString.replaceAll(inicioRegex, this.getTelemetria().getStartTimeInfo());
         finalString = finalString.replaceAll(tempOnlineRegex, this.getTelemetria().getServerOnlineTime());
-        finalString = finalString.replaceAll(numConRegex, this.getTelemetria().getConnectionsNumber()+"");
-        
+        finalString = finalString.replaceAll(numConRegex, this.getTelemetria().getConnectionsNumber() + "");
+
         return finalString;
     }
-    
+
+    public void writeBuffer(byte[] byteBuffer) throws IOException {
+        OutputStream dataOut = new DataOutputStream(this.socket.getOutputStream());
+        dataOut.write(byteBuffer,0,byteBuffer.length);
+        dataOut.flush();
+    }
+
     public void methodGET() throws IOException {
         Path document = Paths.get(this.path);
         if (Files.isDirectory(document)) {
@@ -386,21 +394,37 @@ public class Worker extends Thread {
                 this.writeFile(pathFile);
             }
         } else if (this.getPath().startsWith("/virtual/status/")) {
-            if (this.getPath().endsWith("telemetria.html")) {
+            if (this.getPath().equals("/virtual/status/telemetria.html")) {
                 File file = new File("src/htmls/telemetria.html");
                 Path filePath = Paths.get(file.getPath());
-                this.out.write(response200());
+                this.out.write(this.response200());
                 this.addToResponse("content-type: " + Files.probeContentType(filePath) + "\r\n");
                 this.addToResponse("content-lenght: " + file.length() + "\r\n");
                 this.out.write(this.getServerResponse());
                 this.out.write("\r\n");
                 this.out.flush();
                 this.out.write(this.telemetriaHTML());
-            } else if (this.getPath().endsWith("telemetria.js")) {
+            } else if (this.getPath().equals("/virtual/status/telemetria.js")) {
 
             } else {
                 this.response404();
             }
+        } else if (this.getPath().equals("/virtual/telemetria/status.json")) {
+            String startTimeInfo = this.getTelemetria().getStartTimeInfo();
+            String onlineTime = this.getTelemetria().getServerOnlineTime();
+            int conexoes = this.getTelemetria().getConnectionsNumber();
+            JSONObject json = new JSONObject();
+            json.put("startTimeInfo", startTimeInfo);
+            json.put("onlineTime", onlineTime);
+            json.put("conexoes", conexoes);
+            byte[] buffer = json.toString().getBytes();
+            this.out.write(this.response200());
+            this.addToResponse("content-type: application/json\r\n");
+            this.addToResponse("content-lenght: " + buffer.length+"\r\n");
+            this.out.write(this.getServerResponse());
+            this.out.write("\r\n");
+            this.out.flush();
+            this.writeBuffer(buffer);
         } else {
             if (this.hasNeighbors()) {
                 this.response404();
@@ -483,11 +507,11 @@ public class Worker extends Thread {
 
     private void writeFeedback() throws IOException {
         Date d = new Date();
-        File f = new File("src/Feedbacks/"+d);
+        File f = new File("src/Feedbacks/" + d);
         FileWriter fw = new FileWriter(f);
-        
+
         fw.write(this.getContent());
-        
+
         fw.close();
     }
 

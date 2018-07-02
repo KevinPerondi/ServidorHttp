@@ -45,7 +45,7 @@ public class Telemetria {
         long min = (miliDif / (60 * 1000)) % 60;
         long hours = (miliDif / (60 * 60 * 1000)) % 24;
 
-        str = hours + ":" + min + ":" + sec;
+        str = String.format("%02d", hours) + ":" + String.format("%02d", min) + ":" + String.format("%02d", sec);
 
         return str;
     }
@@ -55,7 +55,7 @@ public class Telemetria {
         str = String.format("%02d", this.getStartTime().getDayOfMonth()) + "-"
                 + String.format("%02d", this.getStartTime().getMonthValue())
                 + "-" + this.getStartTime().getYear() + " " + String.format("%02d", this.getStartTime().getHour())
-                + ":" + String.format("%02d", this.getStartTime().getMinute()) + ":" + this.getStartTime().getSecond();
+                + ":" + String.format("%02d", this.getStartTime().getMinute()) + ":" + String.format("%02d", this.getStartTime().getSecond());
         return str;
     }
 }

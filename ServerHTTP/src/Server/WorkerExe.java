@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 public class WorkerExe {
 
@@ -75,13 +77,13 @@ public class WorkerExe {
         if (!params.isEmpty()) {
             if (params.contains("&")) {
                 String[] parameters = params.split("&");
-                if (parameters.length == 2) {
-                    p = new ProcessBuilder(this.getFilePath(), parameters[0], parameters[1]).start();
-                } else if (parameters.length == 3) {
-                    p = new ProcessBuilder(this.getFilePath(), parameters[0], parameters[1], parameters[2]).start();
-                } else {
-                    processSucefull = false;
+                List<String> processParams = new ArrayList<>();
+                processParams.add(this.getFilePath());
+                for (String str : parameters) {
+                    processParams.add(str);
                 }
+                p = new ProcessBuilder(processParams).start();
+
             } else {
                 try {
                     p = new ProcessBuilder(this.getFilePath(), params).start();
