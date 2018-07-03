@@ -40,9 +40,10 @@ p.pzin3{
 <script>
 
     var app = angular.module('myApp', []);
+    var app2 = angular.module('myApp2', []);
     app.controller('myCtrl', function ($scope, $http, $interval) {
         this.interval = $interval (function(){
-        $http.get("http://localhost:5555/virtual/telemetria/status.json")
+        $http.get("/virtual/telemetria/status.json")
             .then(function (response) {
                 $scope.dataInicial = response.data.startTimeInfo;
                 $scope.tempoOnline = response.data.onlineTime;
